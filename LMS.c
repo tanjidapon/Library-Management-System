@@ -61,9 +61,9 @@ void greetings(){
     printf("\t\t\t     *       ------------------------       *\n");
     printf("\t\t\t     *                                      *\n");
     printf("\t\t\t     *                                      *\n");
-    printf("\t\t\t     *       Mumbai,Maharashtra,India       *\n");
-    printf("\t\t\t     *     Email: studentlib@gmail.com      *\n");
-    printf("\t\t\t     *     Contact:8800991010,8800992020    *\n");
+    printf("\t\t\t     *     SK.Tanjid Ahmmed Apon            *\n");
+    printf("\t\t\t     *     Email:tanjidahmmedapon@gmail.com *\n");
+    printf("\t\t\t     *     Contact:01955580543              *\n");
     printf("\t\t\t     *                                      *\n");
     printf("\t\t\t     ****************************************\n");
     printf("\n\n\t\t\t             Press any key to continue: ");

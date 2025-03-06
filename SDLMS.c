@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 // Function Declarations
 void adminLogin();
@@ -12,20 +13,24 @@ void viewAllUsers();
 void borrowBook();
 void returnBook();
 void viewUserDetails();
-void signUp();
+void registration();
 void listAvailableBooks();
 void listAllBooks();
-void addBook();
 void backToDashboard();
 void viewPaidBooks();
+void checkDueDates();
+void showMainDashboard();
 
 // Structure for storing user data
 typedef struct {
     char username[50];
     char password[50];
     int isDeleted; // Flag to indicate if the user is deleted
+    char studentId[20]; // Store student ID
     char borrowedBooks[5][50]; // List of borrowed books by the user
     int borrowedCount; // Number of books borrowed by the user
+    time_t borrowDates[5]; // Store borrow dates for each borrowed book
+    time_t returnDates[5]; // Store return dates (deadlines) for each book
 } User;
 
 // Array to store users
@@ -40,14 +45,42 @@ int availableBooks[5] = {5, 3, 4, 2, 6};  // Available copies of each book
 char paidBooks[2][50] = {"Advanced Algorithms", "Machine Learning"};
 int availablePaidBooks[2] = {3, 5};  // Available copies of paid books
 
+// Main function to drive the library system
+int main() {
+    int choice;
+    while (1) {
+        showMainDashboard();  // Show the main dashboard
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1:
+                adminLogin();  // Admin login
+                break;
+            case 2:
+                userLogin();  // User login
+                break;
+            case 3:
+                registration();  // New user registration
+                break;
+            case 4:
+                printf("\nExiting program...\n");
+                exit(0);  // Exit the program
+            default:
+                printf("\nInvalid choice! Try again.\n");
+        }
+    }
+}
+
 // Main Dashboard (Admin/User Selection)
 void showMainDashboard() {
     printf("\n----------------------------------------------------\n");
-    printf("Welcome to the Library Management System\n");
+    printf("Welcome to Northern University Library Management System\n");
     printf("----------------------------------------------------\n");
     printf("1. Admin Login\n");
     printf("2. User Login\n");
-    printf("3. Exit\n");
+    printf("3. Registration (New User)\n");
+    printf("4. Exit\n");
     printf("----------------------------------------------------\n");
 }
 
@@ -74,9 +107,8 @@ void adminDashboard() {
     printf("1. View All Users\n");
     printf("2. Delete User\n");
     printf("3. List Available Books\n");
-    printf("4. Add a Book\n");
-    printf("5. View Paid Books\n");
-    printf("6. Back to Dashboard\n");
+    printf("4. View Paid Books\n");
+    printf("5. Back to Dashboard\n");
     printf("-------------------------------------------------------------------\n");
 }
 
@@ -99,12 +131,9 @@ void adminPage() {
                 listAllBooks();  // List available books for Admin
                 break;
             case 4:
-                addBook();  // Add a new book to the library
-                break;
-            case 5:
                 viewPaidBooks();  // Show available paid books
                 break;
-            case 6:
+            case 5:
                 backToDashboard();  // Go back to the dashboard
                 return;
             default:
@@ -119,7 +148,7 @@ void viewAllUsers() {
     int found = 0;
     for (int i = 0; i < userCount; i++) {
         if (users[i].isDeleted == 0) { // Only show non-deleted users
-            printf("User: %s\n", users[i].username);
+            printf("User: %s, Student ID: %s\n", users[i].username, users[i].studentId);
             found = 1;
         }
     }
@@ -215,17 +244,20 @@ void userPage() {
     }
 }
 
-// View User Details (Including borrowed books)
+// View User Details (Including borrowed books and deadlines)
 void viewUserDetails() {
     printf("\n----------------- Your User Details -----------------\n");
     printf("Username: %s\n", users[userCount - 1].username);
+    printf("Student ID: %s\n", users[userCount - 1].studentId);
     printf("Borrowed Books:\n");
 
     if (users[userCount - 1].borrowedCount == 0) {
         printf("You haven't borrowed any books yet.\n");
     } else {
         for (int i = 0; i < users[userCount - 1].borrowedCount; i++) {
-            printf("%d. %s\n", i + 1, users[userCount - 1].borrowedBooks[i]);
+            char dueDate[20];
+            strftime(dueDate, sizeof(dueDate), "%Y-%m-%d", localtime(&users[userCount - 1].returnDates[i]));
+            printf("%d. %s (Due Date: %s)\n", i + 1, users[userCount - 1].borrowedBooks[i], dueDate);
         }
     }
     printf("-------------------------------------------------------\n");
@@ -242,6 +274,16 @@ void borrowBook() {
     if (bookChoice >= 1 && bookChoice <= 5 && availableBooks[bookChoice - 1] > 0) {
         availableBooks[bookChoice - 1]--;
         strcpy(users[userCount - 1].borrowedBooks[users[userCount - 1].borrowedCount], books[bookChoice - 1]);
+        
+        // Get the current time and set the return date to 7 days later
+        time_t now = time(NULL);
+        struct tm *tm_now = localtime(&now);
+        tm_now->tm_mday += 7;  // Add 7 days for return deadline
+        time_t returnDate = mktime(tm_now);
+        
+        users[userCount - 1].borrowDates[users[userCount - 1].borrowedCount] = now;
+        users[userCount - 1].returnDates[users[userCount - 1].borrowedCount] = returnDate;
+        
         users[userCount - 1].borrowedCount++;
         printf("\nYou have borrowed: %s\n", books[bookChoice - 1]);
     } else {
@@ -295,18 +337,6 @@ void listAllBooks() {
     printf("---------------------------------------------------------\n");
 }
 
-// Admin Add Book
-void addBook() {
-    char newBook[50];
-    printf("\nEnter the name of the book to add: ");
-    scanf("%s", newBook);
-
-    // Add the book to the available books list
-    strcpy(books[5], newBook);
-    availableBooks[5] = 10;  // Setting a default number of copies
-    printf("\nBook '%s' has been added to the library.\n", newBook);
-}
-
 // Admin View Paid Books
 void viewPaidBooks() {
     printf("\n------------------ Paid Books ------------------\n");
@@ -321,9 +351,9 @@ void backToDashboard() {
     printf("\nReturning to Admin Dashboard...\n");
 }
 
-// Sign Up (Creating a new user)
-void signUp() {
-    printf("\nSign Up - Create a new user account\n");
+// Registration (Creating a new user)
+void registration() {
+    printf("\nRegistration - Create a new user account\n");
 
     printf("Enter a new username: ");
     scanf("%s", users[userCount].username);
@@ -331,46 +361,12 @@ void signUp() {
     printf("Enter a new password: ");
     scanf("%s", users[userCount].password);
 
+    printf("Enter your Student ID: ");
+    scanf("%s", users[userCount].studentId);
+
     users[userCount].isDeleted = 0; // Initially, the user is not deleted
     users[userCount].borrowedCount = 0; // No borrowed books initially
     userCount++;
 
-    printf("\nSign Up successful! You can now login with your new account.\n");
-}
-
-// Main Function
-int main() {
-    int choice;
-
-    while (1) {
-        showMainDashboard();
-        printf("Enter your choice: ");
-        scanf("%d", &choice);
-
-        switch (choice) {
-            case 1:
-                adminLogin();  // Admin login
-                break;
-            case 2:
-                printf("\n1. Sign Up\n2. Sign In\n");
-                printf("Choose an option: ");
-                int loginChoice;
-                scanf("%d", &loginChoice);
-                if (loginChoice == 1) {
-                    signUp();  // Sign Up for new users
-                } else if (loginChoice == 2) {
-                    userLogin();  // User login
-                } else {
-                    printf("\nInvalid choice!\n");
-                }
-                break;
-            case 3:
-                printf("\nExiting the system...\n");
-                exit(0);
-            default:
-                printf("\nInvalid choice! Try again.\n");
-        }
-    }
-
-    return 0;
+    printf("\nRegistration successful! You can now login with your new account.\n");
 }
